@@ -132,6 +132,10 @@ alter table heart_state enable row level security;
 grant select on heart_state to anon, authenticated;
 drop policy if exists "Anyone can read hearts" on heart_state;
 create policy "Anyone can read hearts" on heart_state for select using (true);
+-- You (signed in) can give her hearts back from the admin panel.
+grant update on heart_state to authenticated;
+drop policy if exists "Admin resets hearts" on heart_state;
+create policy "Admin resets hearts" on heart_state for update to authenticated using (true) with check (true);
 -- No direct writes: Tally (not logged in) can only use a heart through use_heart() below,
 -- which works out "today" itself and refuses once the hearts are used up.
 
