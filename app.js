@@ -6,11 +6,11 @@ const MY_TZ = "Asia/Taipei";
 
 // Categories: label on Tally's page + short tag in the admin list.
 const KINDS = {
-  lief:      { label: "Lief & persoonlijk",        tag: "Lief" },
-  motivatie: { label: "Motivatie & wijsheid",      tag: "Motivatie" },
-  fact:      { label: "Fun fact & random gedachte", tag: "Fun fact" },
-  baka:      { label: "Baka & gekkigheid",          tag: "Baka" },
-  quote:     { label: "Quote",                        tag: "Quote" },
+  lief:      { label: "Voor jou",    tag: "Lief" },
+  motivatie: { label: "Onthoud dit", tag: "Motivatie" },
+  fact:      { label: "Wist je dat", tag: "Fun fact" },
+  baka:      { label: "Baka",        tag: "Baka" },
+  quote:     { label: "Quote",       tag: "Quote" },
 };
 const kindOf = (k) => KINDS[k] || KINDS.quote;
 
@@ -400,6 +400,7 @@ function updateMusicButton() {
   bar.classList.toggle("playing", playing);
   $("np-label").textContent = playing ? "Now playing" : musicOn && musicBlocked ? "Click to start" : "Music paused";
   $("np-title").textContent = queue[queueIndex]?.title || "Untitled song";
+  $("np-skip").hidden = queue.length < 2;
   if (document.activeElement !== $("np-volume")) $("np-volume").value = musicOn ? volumePercent() : 0;
   paintVolume();
 }
@@ -452,6 +453,18 @@ $("music-btn").addEventListener("click", (e) => {
 });
 
 // Tally's volume slider: 0 turns the music off, sliding up turns it on.
+// Skip: jump to a random other song from the playlist (only for her, nothing is saved).
+$("np-skip").addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (queue.length < 2) return;
+  let next;
+  do { next = Math.floor(Math.random() * queue.length); } while (next === queueIndex);
+  queueIndex = next;
+  audio.src = queue[queueIndex].url;
+  if (musicOn) playMusic();
+  else updateMusicButton();
+});
+
 // Colour the part of the slider line left of the knob.
 function paintVolume() {
   $("np-volume").style.setProperty("--fill", $("np-volume").value + "%");

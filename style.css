@@ -380,7 +380,18 @@ button { cursor: pointer; border: 0; background: none; }
 .np-label { color: var(--muted); white-space: nowrap; flex-shrink: 0; }
 .np-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Small, quiet volume control on the right */
-.np-volume { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; color: var(--muted); }
+.np-controls { display: flex; align-items: center; gap: 12px; margin-left: auto; flex-shrink: 0; }
+.np-skip {
+  display: grid; place-items: center;
+  width: 24px; height: 24px; margin: -4px -6px -4px 0; /* pull toward the edge of the pill */
+  border-radius: 50%;
+  color: var(--muted);
+  transition: color 0.2s, background 0.2s;
+}
+.np-skip svg { width: 14px; height: 14px; fill: currentColor; }
+.np-skip:hover { color: var(--ink); background: var(--bg); }
+.np-skip:active svg { transform: translateX(1px); }
+.np-volume { display: flex; align-items: center; gap: 8px; color: var(--muted); }
 .np-volume svg { width: 15px; height: 15px; fill: currentColor; }
 #np-volume {
   --fill: 25%;
@@ -463,4 +474,9 @@ body { grid-template-columns: minmax(0, 1fr); justify-items: center; align-conte
   /* Bigger buttons for fingers */
   .small { padding: 8px 12px; font-size: 0.85rem; }
   .item-actions .small { flex: 1; }
+}
+
+/* Small phones: drop the "Now playing" label so the song name has room */
+@media (max-width: 420px) {
+  .np-label { display: none; }
 }
