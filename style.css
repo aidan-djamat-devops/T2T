@@ -49,10 +49,9 @@ body {
 }
 
 .brand {
-  font-family: "Fraunces", serif;
   font-weight: 600;
-  font-size: 1.25rem;
-  letter-spacing: 0.04em;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
 }
 
 .heart {
@@ -119,13 +118,14 @@ body {
 }
 
 blockquote {
-  font-family: "Fraunces", serif;
-  font-size: 1.35rem;
-  line-height: 1.45;
+  font-size: 1.3rem;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
   text-wrap: balance;
 }
 
-.author { margin-top: 10px; color: var(--muted); font-style: italic; }
+.author { margin-top: 10px; color: var(--muted); font-size: 0.9rem; }
 .author:empty { display: none; }
 
 .bottom {
@@ -150,8 +150,8 @@ blockquote {
 }
 .counter strong {
   display: block;
-  font-family: "Fraunces", serif;
-  font-size: 1.4rem;
+  font-size: 1.3rem;
+  font-weight: 600;
   color: var(--accent);
 }
 
@@ -270,7 +270,7 @@ button { cursor: pointer; border: 0; background: none; }
   justify-content: space-between; align-items: center;
   margin-bottom: 12px;
 }
-.panel h2 { font-family: "Fraunces", serif; font-size: 1.15rem; font-weight: 600; }
+.panel h2 { font-size: 1.05rem; font-weight: 600; }
 .mode { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); }
 
 .add-form { display: grid; gap: 8px; margin-bottom: 14px; }
