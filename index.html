@@ -51,7 +51,10 @@
         <span class="city">Aidan · Taipei</span>
         <span class="time" id="me-time"></span>
       </div>
-      <div class="counter" id="counter"></div>
+      <div class="counter">
+        <div class="hearts" id="hearts" hidden></div>
+        <div id="counter-text"></div>
+      </div>
       <div class="clock">
         <span class="city" id="her-city"></span>
         <span class="time" id="her-time"></span>
@@ -113,10 +116,10 @@
           <div class="row">
             <input id="quote-author" placeholder="Author (optional)">
             <select id="quote-kind">
-              <option value="lief">💕 Lief &amp; persoonlijk</option>
-              <option value="motivatie">💪 Motivatie &amp; wijsheid</option>
-              <option value="fact">🧠 Fun fact &amp; random gedachte</option>
-              <option value="baka">🤪 Baka &amp; gekkigheid</option>
+              <option value="lief">Lief &amp; persoonlijk</option>
+              <option value="motivatie">Motivatie &amp; wijsheid</option>
+              <option value="fact">Fun fact &amp; random gedachte</option>
+              <option value="baka">Baka &amp; gekkigheid</option>
               <option value="quote">Quote</option>
             </select>
             <button class="primary" type="submit">Add</button>
@@ -180,11 +183,18 @@
       <!-- Settings -->
       <section class="panel">
         <div class="panel-head"><h2>Settings</h2></div>
+        <p class="muted hint" id="hearts-status"></p>
         <form class="settings" id="settings-form">
           <label>Her clock label <input id="set-city" placeholder="Tally · Amsterdam"></label>
           <label>Her timezone <input id="set-tz" list="tz-list" placeholder="Europe/Amsterdam"></label>
           <label>Next time we meet <input type="date" id="set-reunion"></label>
           <label>Text under the ♥ <input id="set-footer" maxlength="60" placeholder="thinking of you"></label>
+          <label>Hearts per day
+            <select id="set-hearts">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+              <option value="4">4</option><option value="5">5</option>
+            </select>
+          </label>
           <button class="primary" type="submit">Save</button>
         </form>
         <datalist id="tz-list">
