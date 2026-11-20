@@ -336,7 +336,23 @@ button { cursor: pointer; border: 0; background: none; }
 }
 .toast.error { background: #c0392b; color: #fff; }
 
+/* Keep the cards inside the screen on phones (grid items otherwise grow to fit wide inputs). */
+body { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+.card { min-width: 0; }
+.mode { flex-wrap: wrap; }
+.mode select { max-width: 100%; }
+.add-form { grid-template-columns: minmax(0, 1fr); }
+.row input[type="file"] { min-width: 0; max-width: 100%; }
+
 @media (max-width: 520px) {
+  .card { padding: 18px; }
   .list li { flex-direction: column; align-items: stretch; }
   .card.admin { margin-top: 56px; }
+  .panel-head { flex-direction: column; align-items: stretch; }
+  .mode select { flex: 1; }
+  /* 16px stops iPhone from zooming in when you tap a field */
+  input, select, textarea, .thumb input { font-size: 16px; }
+  /* Bigger buttons for fingers */
+  .small { padding: 8px 12px; font-size: 0.85rem; }
+  .item-actions .small { flex: 1; }
 }
