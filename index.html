@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>T2T 💌</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💌</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Profile switcher (top-right corner) -->
+  <div class="switcher">
+    <button class="switcher-btn" id="switcher-btn" aria-haspopup="menu" aria-expanded="false">
+      <span class="avatar" id="switcher-avatar">T</span>
+      <span id="switcher-name">Tally</span>
+    </button>
+    <div class="switcher-menu" id="switcher-menu" role="menu" hidden>
+      <button role="menuitem" data-profile="tally"><span class="avatar">T</span>Tally</button>
+      <button role="menuitem" data-profile="aidan"><span class="avatar admin">A</span>Aidan <small>admin</small></button>
+    </div>
+  </div>
+
+  <!-- ============ Tally's page ============ -->
+  <main class="card" id="tally-view">
+    <header class="top">
+      <span class="brand">T <span class="heart">♥</span> T</span>
+      <span class="date" id="date"></span>
+    </header>
+
+    <figure class="photo" id="photo">
+      <img id="photo-img" alt="">
+      <figcaption id="photo-caption"></figcaption>
+    </figure>
+
+    <section class="daily" id="daily">
+      <p class="label" id="daily-label">Quote of the day</p>
+      <blockquote id="daily-text"></blockquote>
+      <p class="author" id="daily-author"></p>
+    </section>
+
+    <footer class="bottom">
+      <div class="clock">
+        <span class="city">Aidan · Taipei</span>
+        <span class="time" id="me-time"></span>
+      </div>
+      <div class="counter" id="counter"></div>
+      <div class="clock">
+        <span class="city" id="her-city"></span>
+        <span class="time" id="her-time"></span>
+      </div>
+    </footer>
+  </main>
+
+  <!-- ============ Aidan's admin page ============ -->
+  <main class="card admin" id="admin-view" hidden>
+    <header class="top">
+      <span class="brand">Aidan's corner</span>
+      <button class="link" id="sign-out" hidden>Sign out</button>
+    </header>
+
+    <p class="notice" id="demo-notice" hidden>
+      Demo mode: changes are saved in this browser only. Connect Supabase in <code>config.js</code>
+      so Tally sees them on her laptop.
+    </p>
+
+    <!-- Login (Supabase mode only) -->
+    <form class="login" id="login-form" hidden>
+      <p>Sign in to edit Tally's page.</p>
+      <input type="email" id="login-email" placeholder="Email" autocomplete="username" required>
+      <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
+      <button class="primary" type="submit">Sign in</button>
+      <p class="error" id="login-error"></p>
+    </form>
+
+    <div id="admin-panel" hidden>
+      <!-- Quotes -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Quotes &amp; facts</h2>
+          <label class="mode">Changes
+            <select id="quote-mode">
+              <option value="pinned">Only the selected one</option>
+              <option value="shuffle">Shuffle (new on every open)</option>
+              <option value="hourly">Every hour</option>
+              <option value="daily">Every day</option>
+            </select>
+          </label>
+        </div>
+
+        <form class="add-form" id="quote-form">
+          <textarea id="quote-text" rows="2" placeholder="Write a quote, fun fact or little note…" required></textarea>
+          <div class="row">
+            <input id="quote-author" placeholder="Author (optional)">
+            <select id="quote-kind">
+              <option value="lief">💕 Lief &amp; persoonlijk</option>
+              <option value="motivatie">💪 Motivatie &amp; wijsheid</option>
+              <option value="fact">🧠 Fun fact &amp; random gedachte</option>
+              <option value="baka">🤪 Baka &amp; gekkigheid</option>
+              <option value="quote">Quote</option>
+            </select>
+            <button class="primary" type="submit">Add</button>
+          </div>
+        </form>
+
+        <ul class="list" id="quote-list"></ul>
+      </section>
+
+      <!-- Photos -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Photos</h2>
+          <label class="mode">Changes
+            <select id="photo-mode">
+              <option value="pinned">Only the selected one</option>
+              <option value="shuffle">Shuffle (new on every open)</option>
+              <option value="hourly">Every hour</option>
+              <option value="daily">Every day</option>
+            </select>
+          </label>
+        </div>
+
+        <form class="add-form" id="photo-form">
+          <div class="row">
+            <input type="file" id="photo-file" accept="image/*" required>
+            <input id="photo-caption-input" placeholder="Caption (optional)">
+            <button class="primary" type="submit">Upload</button>
+          </div>
+        </form>
+
+        <div class="grid" id="photo-grid"></div>
+      </section>
+
+      <!-- Settings -->
+      <section class="panel">
+        <div class="panel-head"><h2>Settings</h2></div>
+        <form class="settings" id="settings-form">
+          <label>Her clock label <input id="set-city" placeholder="Tally · Amsterdam"></label>
+          <label>Her timezone <input id="set-tz" list="tz-list" placeholder="Europe/Amsterdam"></label>
+          <label>Next time we meet <input type="date" id="set-reunion"></label>
+          <button class="primary" type="submit">Save</button>
+        </form>
+        <datalist id="tz-list">
+          <option value="Europe/Amsterdam"><option value="Europe/Brussels"><option value="Europe/London">
+          <option value="Europe/Berlin"><option value="America/New_York"><option value="America/Los_Angeles">
+          <option value="Asia/Taipei"><option value="Australia/Sydney">
+        </datalist>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="content.js"></script>
+  <script src="store.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
