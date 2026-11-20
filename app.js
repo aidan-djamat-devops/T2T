@@ -227,7 +227,14 @@ let musicOn = false;       // what Tally chose (remembered in this browser)
 let musicBlocked = false;  // browser refused to start without a click
 let queue = [];
 let queueIndex = 0;
-try { musicOn = localStorage.getItem("t2t-music") === "on"; } catch {}
+let herVolume = null;      // Tally's own slider setting (0–100); null = use Aidan's default
+try {
+  musicOn = localStorage.getItem("t2t-music") === "on";
+  const v = localStorage.getItem("t2t-volume");
+  if (v !== null && !isNaN(v)) herVolume = Number(v);
+} catch {}
+
+const volumePercent = () => herVolume ?? data.settings.music_volume ?? 25;
 
 function wantedQueue() {
   const songs = data.songs || [];
@@ -252,7 +259,7 @@ async function playMusic() {
 
 function syncMusic() {
   const next = wantedQueue();
-  audio.volume = Math.min(1, Math.max(0, (data.settings.music_volume ?? 25) / 100));
+  audio.volume = Math.min(1, Math.max(0, volumePercent() / 100));
   if (next.map((s) => s.id).join() !== queue.map((s) => s.id).join()) {
     const current = queue[queueIndex];
     queue = next;
@@ -280,7 +287,50 @@ function updateMusicButton() {
   const label = musicOn ? "Music off" : "Music on";
   btn.setAttribute("aria-label", label);
   btn.title = musicOn && musicBlocked ? "Click to start the music" : label;
+
+  // Now playing bar under Tally's card
+  const bar = $("now-playing");
+  const playing = !audio.paused;
+  showNowPlaying(queue.length > 0 && profile !== "aidan" && musicOn);
+  bar.classList.toggle("playing", playing);
+  $("np-label").textContent = playing ? "Now playing" : musicOn && musicBlocked ? "Click to start" : "Music paused";
+  $("np-title").textContent = queue[queueIndex]?.title || "Untitled song";
+  if (document.activeElement !== $("np-volume")) $("np-volume").value = musicOn ? volumePercent() : 0;
+  paintVolume();
 }
+
+// Only visible while Tally has the music turned on; fades in and out.
+let barHideTimer;
+function showNowPlaying(show) {
+  const bar = $("now-playing");
+  const visible = !bar.hidden && !bar.classList.contains("fade-out");
+  if (show === visible) return;
+  clearTimeout(barHideTimer);
+  if (show) {
+    bar.classList.remove("fade-out");
+    bar.hidden = false;
+    bar.classList.remove("fade-in");
+    void bar.offsetWidth; // restart the animation
+    bar.classList.add("fade-in");
+  } else {
+    bar.classList.remove("fade-in");
+    bar.classList.add("fade-out");
+    barHideTimer = setTimeout(() => {
+      bar.hidden = true;
+      bar.classList.remove("fade-out");
+    }, 250);
+  }
+}
+
+function setMusicOn(on) {
+  musicOn = on;
+  try { localStorage.setItem("t2t-music", on ? "on" : "off"); } catch {}
+  if (on) playMusic();
+  else { audio.pause(); updateMusicButton(); }
+}
+
+audio.addEventListener("play", updateMusicButton);
+audio.addEventListener("pause", updateMusicButton);
 
 audio.addEventListener("ended", () => {
   if (queue.length < 2) return;
@@ -293,10 +343,27 @@ $("music-btn").addEventListener("click", (e) => {
   e.stopPropagation();
   // Already "on" but the browser blocked it: this click starts it.
   if (musicOn && audio.paused) return playMusic();
-  musicOn = !musicOn;
-  try { localStorage.setItem("t2t-music", musicOn ? "on" : "off"); } catch {}
-  if (musicOn) playMusic();
-  else { audio.pause(); updateMusicButton(); }
+  setMusicOn(!musicOn);
+});
+
+// Tally's volume slider: 0 turns the music off, sliding up turns it on.
+// Colour the part of the slider line left of the knob.
+function paintVolume() {
+  $("np-volume").style.setProperty("--fill", $("np-volume").value + "%");
+}
+
+$("np-volume").addEventListener("click", (e) => e.stopPropagation());
+$("np-volume").addEventListener("input", (e) => {
+  paintVolume();
+  const v = Number(e.target.value);
+  if (v === 0) {
+    if (musicOn) setMusicOn(false);
+    return;
+  }
+  herVolume = v;
+  try { localStorage.setItem("t2t-volume", String(v)); } catch {}
+  audio.volume = v / 100;
+  if (!musicOn || audio.paused) setMusicOn(true);
 });
 
 // If she left the music on last time, her first click anywhere starts it again.
@@ -449,6 +516,7 @@ function setProfile(p) {
   $("switcher-name").textContent = isAidan ? "Aidan" : "Tally";
   $("switcher-avatar").textContent = isAidan ? "A" : "T";
   $("switcher-avatar").classList.toggle("admin", isAidan);
+  updateMusicButton();
   closeMenu();
   render();
 }

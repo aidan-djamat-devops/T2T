@@ -364,8 +364,51 @@ button { cursor: pointer; border: 0; background: none; }
 .volume input { flex: 1; max-width: 240px; accent-color: var(--accent); padding: 0; border: 0; background: none; }
 .hint { font-size: 0.8rem; margin: -4px 0 10px; }
 
+.now-playing {
+  width: min(560px, 100%);
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px;
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+.now-playing .note { width: 16px; height: 16px; flex-shrink: 0; fill: currentColor; color: var(--accent); }
+.now-playing.playing .note { animation: bob 1.6s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+.np-text { display: flex; align-items: baseline; gap: 8px; min-width: 0; flex: 0 1 auto; }
+.np-label { color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+.np-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Small, quiet volume control on the right */
+.np-volume { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; color: var(--muted); }
+.np-volume svg { width: 15px; height: 15px; fill: currentColor; }
+#np-volume {
+  --fill: 25%;
+  -webkit-appearance: none; appearance: none;
+  width: 84px; height: 3px;
+  padding: 0; border: 0; border-radius: 3px;
+  background: linear-gradient(to right, var(--muted) var(--fill), color-mix(in srgb, var(--muted) 28%, transparent) var(--fill));
+  cursor: pointer;
+}
+#np-volume:focus { outline: none; }
+#np-volume::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--ink); border: 0;
+  transition: transform 0.15s;
+}
+#np-volume::-moz-range-thumb { width: 11px; height: 11px; border-radius: 50%; background: var(--ink); border: 0; }
+#np-volume::-moz-range-track { background: transparent; }
+#np-volume:hover::-webkit-slider-thumb, #np-volume:focus-visible::-webkit-slider-thumb { transform: scale(1.25); }
+
+/* Fade in when Tally turns the music on, fade out when she turns it off */
+.now-playing.fade-in { animation: np-in 0.35s ease-out; }
+.now-playing.fade-out { animation: np-out 0.25s ease-in forwards; }
+@keyframes np-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@keyframes np-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-6px); } }
+
 /* Keep the cards inside the screen on phones (grid items otherwise grow to fit wide inputs). */
-body { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+body { grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: center; row-gap: 12px; }
 .card { min-width: 0; }
 .mode { flex-wrap: wrap; }
 .mode select { max-width: 100%; }
