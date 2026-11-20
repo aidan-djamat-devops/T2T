@@ -12,7 +12,16 @@ const DEFAULT_SETTINGS = {
   her_timezone: "Europe/Amsterdam",
   reunion_date: null,
   footer_text: "thinking of you",
+  music_mode: "playlist",
+  music_song_id: null,
+  music_volume: 25,
 };
+
+const MAX_SONG_MB = 20;
+function checkSong(file) {
+  if (!file.type.startsWith("audio/")) throw new Error("That isn't an audio file — use an mp3.");
+  if (file.size > MAX_SONG_MB * 1024 * 1024) throw new Error(`Song is too big (max ${MAX_SONG_MB} MB).`);
+}
 
 // Shrink big phone photos before saving (max 1600px, JPEG).
 async function resizeImage(file, maxSize = 1600) {
@@ -31,7 +40,7 @@ async function resizeImage(file, maxSize = 1600) {
 
 function createSupabaseStore(cfg) {
   const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
-  const publicUrl = (path) => sb.storage.from("photos").getPublicUrl(path).data.publicUrl;
+  const publicUrl = (path, bucket = "photos") => sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
   const check = ({ data, error }) => { if (error) throw error; return data; };
 
   return {
@@ -39,14 +48,18 @@ function createSupabaseStore(cfg) {
     needsLogin: true,
 
     async load() {
-      const [quotes, photos, settings] = await Promise.all([
+      const [quotes, photos, settings, songs] = await Promise.all([
         sb.from("quotes").select("*").order("created_at"),
         sb.from("photos").select("*").order("created_at"),
         sb.from("settings").select("*").eq("id", 1).maybeSingle(),
+        sb.from("songs").select("*").order("created_at"),
       ]);
+      // Songs are optional: if add-music.sql hasn't been run yet, the page still works.
+      if (songs.error) console.warn("No songs table yet:", songs.error.message);
       return {
         quotes: check(quotes),
         photos: check(photos).map((p) => ({ ...p, url: publicUrl(p.path) })),
+        songs: (songs.data || []).map((s) => ({ ...s, url: publicUrl(s.path, "music") })),
         settings: { ...DEFAULT_SETTINGS, ...(check(settings) || {}) },
       };
     },
@@ -74,6 +87,18 @@ function createSupabaseStore(cfg) {
     async deletePhoto(photo) {
       check(await sb.from("photos").delete().eq("id", photo.id));
       await sb.storage.from("photos").remove([photo.path]);
+    },
+
+    async addSong(file, title) {
+      checkSong(file);
+      const ext = (file.name.split(".").pop() || "mp3").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      check(await sb.storage.from("music").upload(path, file, { contentType: file.type }));
+      check(await sb.from("songs").insert({ path, title }));
+    },
+    async deleteSong(song) {
+      check(await sb.from("songs").delete().eq("id", song.id));
+      await sb.storage.from("music").remove([song.path]);
     },
 
     async saveSettings(patch) { check(await sb.from("settings").update(patch).eq("id", 1)); },
@@ -124,7 +149,7 @@ function createLocalStore() {
     mode: "local",
     needsLogin: false,
 
-    async load() { return read(); },
+    async load() { return { songs: [], ...read() }; },
     async isLoggedIn() { return true; },
     async signIn() {},
     async signOut() {},
@@ -156,6 +181,11 @@ function createLocalStore() {
         if (d.settings.pinned_photo_id === photo.id) d.settings.pinned_photo_id = null;
       });
     },
+
+    async addSong() {
+      throw new Error("Music needs Supabase — songs are too big to store in the browser.");
+    },
+    async deleteSong() {},
 
     async saveSettings(patch) { update((d) => Object.assign(d.settings, patch)); },
   };

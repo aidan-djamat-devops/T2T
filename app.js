@@ -215,7 +215,153 @@ async function renderAdmin() {
     $("set-reunion").value = s.reunion_date || "";
     $("set-footer").value = s.footer_text || "";
   }
+
+  renderMusicAdmin();
 }
+
+// ---------- music ----------
+
+const audio = new Audio();
+audio.preload = "none";
+let musicOn = false;       // what Tally chose (remembered in this browser)
+let musicBlocked = false;  // browser refused to start without a click
+let queue = [];
+let queueIndex = 0;
+try { musicOn = localStorage.getItem("t2t-music") === "on"; } catch {}
+
+function wantedQueue() {
+  const songs = data.songs || [];
+  if (!songs.length) return [];
+  if (data.settings.music_mode === "single") {
+    return [songs.find((s) => sameId(s.id, data.settings.music_song_id)) || songs[0]];
+  }
+  return songs;
+}
+
+async function playMusic() {
+  if (!queue.length) return;
+  if (!audio.src) audio.src = queue[queueIndex].url;
+  try {
+    await audio.play();
+    musicBlocked = false;
+  } catch {
+    musicBlocked = true; // needs a click first (browser autoplay rule)
+  }
+  updateMusicButton();
+}
+
+function syncMusic() {
+  const next = wantedQueue();
+  audio.volume = Math.min(1, Math.max(0, (data.settings.music_volume ?? 25) / 100));
+  if (next.map((s) => s.id).join() !== queue.map((s) => s.id).join()) {
+    const current = queue[queueIndex];
+    queue = next;
+    const keep = current ? queue.findIndex((s) => sameId(s.id, current.id)) : -1;
+    if (keep >= 0) {
+      queueIndex = keep; // song still in the list: keep playing it
+    } else {
+      queueIndex = 0;
+      audio.pause();
+      audio.removeAttribute("src");
+      if (musicOn && queue.length) playMusic();
+    }
+  }
+  audio.loop = queue.length === 1;
+  if (!queue.length) audio.pause();
+  updateMusicButton();
+}
+
+function updateMusicButton() {
+  const btn = $("music-btn");
+  btn.hidden = !queue.length;
+  btn.classList.toggle("on", musicOn);
+  btn.classList.toggle("waiting", musicOn && musicBlocked && audio.paused);
+  btn.setAttribute("aria-pressed", String(musicOn));
+  const label = musicOn ? "Music off" : "Music on";
+  btn.setAttribute("aria-label", label);
+  btn.title = musicOn && musicBlocked ? "Click to start the music" : label;
+}
+
+audio.addEventListener("ended", () => {
+  if (queue.length < 2) return;
+  queueIndex = (queueIndex + 1) % queue.length;
+  audio.src = queue[queueIndex].url;
+  audio.play().catch(() => {});
+});
+
+$("music-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  // Already "on" but the browser blocked it: this click starts it.
+  if (musicOn && audio.paused) return playMusic();
+  musicOn = !musicOn;
+  try { localStorage.setItem("t2t-music", musicOn ? "on" : "off"); } catch {}
+  if (musicOn) playMusic();
+  else { audio.pause(); updateMusicButton(); }
+});
+
+// If she left the music on last time, her first click anywhere starts it again.
+document.addEventListener("click", () => {
+  if (musicOn && musicBlocked && audio.paused) playMusic();
+});
+
+function renderMusicAdmin() {
+  const s = data.settings;
+  const songs = data.songs || [];
+  $("music-mode").value = s.music_mode || "playlist";
+  if (document.activeElement !== $("music-volume")) $("music-volume").value = s.music_volume ?? 25;
+  $("music-volume-label").textContent = $("music-volume").value + "%";
+
+  if (!songs.length) {
+    $("song-list").replaceChildren(el("li", { class: "muted", textContent: "No songs yet — upload an mp3 above." }));
+    return;
+  }
+  const playing = wantedQueue();
+  $("song-list").replaceChildren(...songs.map((song) => {
+    const isSelected = s.music_mode === "single" && sameId(song.id, playing[0]?.id);
+    return el("li", { class: isSelected ? "selected" : "" },
+      el("div", { class: "item-text" },
+        el("span", { class: "tag", textContent: "♪" }),
+        el("span", { textContent: song.title || "Untitled song" }),
+      ),
+      el("div", { class: "item-actions" },
+        isSelected
+          ? el("span", { class: "now", textContent: "✓ Selected" })
+          : el("button", { class: "small", textContent: "Play only this", onclick: () =>
+              run(() => store.saveSettings({ music_song_id: song.id, music_mode: "single" }), "Tally now hears this song") }),
+        el("button", { class: "small danger", textContent: "Delete", onclick: () => {
+          if (confirm("Delete this song?")) run(() => store.deleteSong(song), "Deleted");
+        } }),
+      ),
+    );
+  }));
+}
+
+$("music-mode").addEventListener("change", (e) =>
+  run(() => store.saveSettings({ music_mode: e.target.value }), "Saved"));
+
+$("music-volume").addEventListener("input", (e) => {
+  $("music-volume-label").textContent = e.target.value + "%";
+  audio.volume = e.target.value / 100; // hear it right away if it's playing here
+});
+$("music-volume").addEventListener("change", (e) =>
+  run(() => store.saveSettings({ music_volume: Number(e.target.value) }), "Volume saved"));
+
+$("song-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const file = $("song-file").files[0];
+  if (!file) return;
+  const btn = $("song-form").querySelector("button[type=submit]");
+  btn.disabled = true;
+  btn.textContent = "Uploading…";
+  const title = $("song-title").value.trim() || file.name.replace(/\.[^.]+$/, "");
+  run(async () => {
+    await store.addSong(file, title);
+    $("song-form").reset();
+  }, "Song added").finally(() => {
+    btn.disabled = false;
+    btn.textContent = "Upload";
+  });
+});
 
 $("quote-mode").addEventListener("change", (e) => {
   const mode = e.target.value;
@@ -336,6 +482,7 @@ function render() {
 async function reload() {
   data = await store.load();
   if (!validTz(herTz())) data.settings.her_timezone = "Europe/Amsterdam";
+  syncMusic();
   render();
 }
 
