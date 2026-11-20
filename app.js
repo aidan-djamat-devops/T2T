@@ -431,7 +431,7 @@ function syncMusic() {
     if (keep >= 0) {
       queueIndex = keep; // song still in the list: keep playing it
     } else {
-      queueIndex = 0;
+      queueIndex = randomSongIndex(); // shuffle: start on a random song
       audio.pause();
       audio.removeAttribute("src");
       if (musicOn && queue.length) playMusic();
@@ -497,9 +497,17 @@ function setMusicOn(on) {
 audio.addEventListener("play", updateMusicButton);
 audio.addEventListener("pause", updateMusicButton);
 
+// Shuffle: a random song, never the one that just played.
+function randomSongIndex(avoid = -1) {
+  if (queue.length < 2) return 0;
+  let i;
+  do { i = Math.floor(Math.random() * queue.length); } while (i === avoid);
+  return i;
+}
+
 audio.addEventListener("ended", () => {
-  if (queue.length < 2) return;
-  queueIndex = (queueIndex + 1) % queue.length;
+  if (queue.length < 2) return; // a single song loops by itself
+  queueIndex = randomSongIndex(queueIndex);
   audio.src = queue[queueIndex].url;
   audio.play().catch(() => {});
 });
@@ -511,14 +519,11 @@ $("music-btn").addEventListener("click", (e) => {
   setMusicOn(!musicOn);
 });
 
-// Tally's volume slider: 0 turns the music off, sliding up turns it on.
 // Skip: jump to a random other song from the playlist (only for her, nothing is saved).
 $("np-skip").addEventListener("click", (e) => {
   e.stopPropagation();
   if (queue.length < 2) return;
-  let next;
-  do { next = Math.floor(Math.random() * queue.length); } while (next === queueIndex);
-  queueIndex = next;
+  queueIndex = randomSongIndex(queueIndex);
   audio.src = queue[queueIndex].url;
   if (musicOn) playMusic();
   else updateMusicButton();
@@ -530,6 +535,7 @@ function paintVolume() {
 }
 
 $("np-volume").addEventListener("click", (e) => e.stopPropagation());
+// Tally's volume slider: 0 turns the music off, sliding up turns it on.
 $("np-volume").addEventListener("input", (e) => {
   paintVolume();
   const v = Number(e.target.value);
