@@ -188,7 +188,10 @@
       <!-- Settings -->
       <section class="panel">
         <div class="panel-head"><h2>Settings</h2></div>
-        <p class="muted hint" id="hearts-status"></p>
+        <div class="hearts-admin">
+          <p class="muted hint" id="hearts-status"></p>
+          <button class="small" id="reset-hearts" type="button" hidden>Give her hearts back</button>
+        </div>
         <form class="settings" id="settings-form">
           <label>Her clock label <input id="set-city" placeholder="Tally · Amsterdam"></label>
           <label>Her timezone <input id="set-tz" list="tz-list" placeholder="Europe/Amsterdam"></label>

@@ -263,6 +263,7 @@ async function renderAdmin() {
   $("hearts-status").textContent = heartsAvailable()
     ? `❤️ Tally used ${heartsUsed()} of ${heartsMax()} hearts today`
     : "❤️ Hearts are hidden while both the quote and the photo are pinned";
+  $("reset-hearts").hidden = !(heartsAvailable() && heartsUsed() > 0);
 
   // Quotes list
   $("quote-list").replaceChildren(...[...data.quotes].reverse().map((q) => {
@@ -593,6 +594,9 @@ $("photo-form").addEventListener("submit", (e) => {
     btn.textContent = "Upload";
   });
 });
+
+$("reset-hearts").addEventListener("click", () =>
+  run(() => store.resetHearts(), "Tally has all her hearts again ♥"));
 
 $("settings-form").addEventListener("submit", (e) => {
   e.preventDefault();

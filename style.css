@@ -455,6 +455,9 @@ button { cursor: pointer; border: 0; background: none; }
 .swap { animation: swap-in 0.5s ease-out; }
 @keyframes swap-in { from { opacity: 0.15; } to { opacity: 1; } }
 
+.hearts-admin { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
+.hearts-admin .hint { margin: 0; }
+
 /* Keep the cards inside the screen on phones (grid items otherwise grow to fit wide inputs). */
 body { grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: center; row-gap: 12px; }
 .card { min-width: 0; }

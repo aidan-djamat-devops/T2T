@@ -105,6 +105,12 @@ function createSupabaseStore(cfg) {
       return check(await sb.rpc("use_heart", { p_quote_id: quoteId, p_photo_id: photoId }));
     },
 
+    // Give Tally her hearts back for today (keeps what she swapped to on screen).
+    async resetHearts() {
+      const rows = check(await sb.from("heart_state").update({ used: 0 }).eq("id", 1).select());
+      if (!rows.length) throw new Error("Not allowed yet — run supabase/allow-heart-reset.sql first.");
+    },
+
     async deleteSong(song) {
       check(await sb.from("songs").delete().eq("id", song.id));
       await sb.storage.from("music").remove([song.path]);
@@ -200,6 +206,10 @@ function createLocalStore() {
         result = d.hearts;
       });
       return result;
+    },
+
+    async resetHearts() {
+      update((d) => { if (d.hearts) d.hearts.used = 0; });
     },
 
     async addSong() {
