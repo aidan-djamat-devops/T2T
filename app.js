@@ -6,11 +6,11 @@ const MY_TZ = "Asia/Taipei";
 
 // Categories: label on Tally's page + short tag in the admin list.
 const KINDS = {
-  lief:      { label: "Lief & persoonlijk",        tag: "Lief" },
-  motivatie: { label: "Motivatie & wijsheid",      tag: "Motivatie" },
-  fact:      { label: "Fun fact & random gedachte", tag: "Fun fact" },
-  baka:      { label: "Baka & gekkigheid",          tag: "Baka" },
-  quote:     { label: "Quote",                        tag: "Quote" },
+  lief:      { label: "Voor jou",    tag: "Lief" },
+  motivatie: { label: "Onthoud dit", tag: "Motivatie" },
+  fact:      { label: "Wist je dat", tag: "Fun fact" },
+  baka:      { label: "Baka",        tag: "Baka" },
+  quote:     { label: "Quote",       tag: "Quote" },
 };
 const kindOf = (k) => KINDS[k] || KINDS.quote;
 
