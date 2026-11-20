@@ -36,7 +36,8 @@ create table settings (
   pinned_photo_id bigint references photos(id) on delete set null,
   her_city        text not null default 'Tally',
   her_timezone    text not null default 'Europe/Amsterdam',
-  reunion_date    date
+  reunion_date    date,
+  footer_text     text not null default 'thinking of you'  -- shown under the ♥ when there's no countdown
 );
 
 insert into settings (id) values (1);

@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS = {
   her_city: "Tally",
   her_timezone: "Europe/Amsterdam",
   reunion_date: null,
+  footer_text: "thinking of you",
 };
 
 // Shrink big phone photos before saving (max 1600px, JPEG).
