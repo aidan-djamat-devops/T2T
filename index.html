@@ -26,7 +26,13 @@
   <main class="card" id="tally-view">
     <header class="top">
       <span class="brand">T <span class="heart">♥</span> T</span>
-      <span class="date" id="date"></span>
+      <span class="top-right">
+        <span class="date" id="date"></span>
+        <button class="music-btn" id="music-btn" aria-label="Music on" aria-pressed="false" title="Music on" hidden>
+          <svg class="icon-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 9.5l5 5m0-5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </span>
     </header>
 
     <figure class="photo" id="photo">
@@ -130,6 +136,32 @@
         </form>
 
         <div class="grid" id="photo-grid"></div>
+      </section>
+
+      <!-- Music -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Music</h2>
+          <label class="mode">Plays
+            <select id="music-mode">
+              <option value="playlist">All songs, one after another</option>
+              <option value="single">Only the selected song (on repeat)</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="volume">Volume <input type="range" id="music-volume" min="5" max="100" step="5"> <span id="music-volume-label"></span></label>
+
+        <form class="add-form" id="song-form">
+          <div class="row">
+            <input type="file" id="song-file" accept="audio/*" required>
+            <input id="song-title" placeholder="Song name (optional)">
+            <button class="primary" type="submit">Upload</button>
+          </div>
+        </form>
+
+        <p class="muted hint">Music never starts by itself: Tally clicks the speaker on her page once. Use music you're allowed to share (royalty-free or your own).</p>
+        <ul class="list" id="song-list"></ul>
       </section>
 
       <!-- Settings -->

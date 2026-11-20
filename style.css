@@ -336,6 +336,34 @@ button { cursor: pointer; border: 0; background: none; }
 }
 .toast.error { background: #c0392b; color: #fff; }
 
+/* ---------- music ---------- */
+
+.top-right { display: flex; align-items: center; gap: 10px; }
+
+.music-btn {
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  color: var(--muted);
+  transition: color 0.2s, background 0.2s;
+}
+.music-btn svg { width: 18px; height: 18px; fill: currentColor; }
+.music-btn:hover { background: var(--bg); color: var(--ink); }
+.music-btn .icon-on { display: none; }
+.music-btn.on { color: var(--accent); }
+.music-btn.on .icon-on { display: block; }
+.music-btn.on .icon-off { display: none; }
+/* Music is "on" but the browser wants a click first: pulse softly as an invitation. */
+.music-btn.waiting { animation: invite 1.8s ease-in-out infinite; }
+@keyframes invite {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 25%, transparent); }
+}
+
+.volume { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; }
+.volume input { flex: 1; max-width: 240px; accent-color: var(--accent); padding: 0; border: 0; background: none; }
+.hint { font-size: 0.8rem; margin: -4px 0 10px; }
+
 /* Keep the cards inside the screen on phones (grid items otherwise grow to fit wide inputs). */
 body { grid-template-columns: minmax(0, 1fr); justify-items: center; }
 .card { min-width: 0; }
