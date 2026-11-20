@@ -133,7 +133,7 @@ function renderClocks() {
   counter.replaceChildren();
   if (daysLeft !== null && daysLeft > 0) counter.append(el("strong", { textContent: daysLeft }), daysLeft === 1 ? "day until we meet" : "days until we meet");
   else if (daysLeft === 0) counter.append(el("strong", { textContent: "Today!" }), "we meet again");
-  else counter.append(el("strong", { textContent: "♥" }), "thinking of you");
+  else counter.append(el("strong", { textContent: "♥" }), data.settings.footer_text || "thinking of you");
 }
 
 $("daily").addEventListener("click", () => {
@@ -213,6 +213,7 @@ async function renderAdmin() {
     $("set-city").value = s.her_city || "";
     $("set-tz").value = s.her_timezone || "";
     $("set-reunion").value = s.reunion_date || "";
+    $("set-footer").value = s.footer_text || "";
   }
 }
 
@@ -270,6 +271,7 @@ $("settings-form").addEventListener("submit", (e) => {
     her_city: $("set-city").value.trim() || "Tally",
     her_timezone: tz,
     reunion_date: $("set-reunion").value || null,
+    footer_text: $("set-footer").value.trim() || "thinking of you",
   }), "Settings saved");
 });
 
