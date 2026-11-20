@@ -407,6 +407,43 @@ button { cursor: pointer; border: 0; background: none; }
 @keyframes np-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 @keyframes np-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-6px); } }
 
+/* Small centred asterisk in front of the category (drawn, so it sits exactly in the middle) */
+.daily .label::before {
+  content: "";
+  display: inline-block;
+  width: 0.8em; height: 0.8em;
+  margin-right: 0.55em;
+  vertical-align: -0.03em; /* centre lines up with the middle of the capitals */
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 1.2v9.6M1.85 3.6l8.3 4.8M1.85 8.4l8.3-4.8' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 1.2v9.6M1.85 3.6l8.3 4.8M1.85 8.4l8.3-4.8' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.daily .label:empty::before { display: none; }
+
+/* ---------- hearts ---------- */
+
+.hearts { display: flex; justify-content: center; gap: 4px; margin-bottom: 2px; }
+.heart-btn {
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 2px 3px;
+  color: var(--accent);
+  transition: transform 0.15s, color 0.3s;
+}
+.heart-btn:not(:disabled):hover { transform: scale(1.2); }
+.heart-btn:not(:disabled) { animation: beat 2.4s ease-in-out infinite; }
+.heart-btn.used { color: color-mix(in srgb, var(--muted) 45%, transparent); cursor: default; animation: none; }
+.heart-btn.pop { animation: heart-pop 0.5s ease-out; }
+@keyframes heart-pop {
+  0%   { transform: scale(1);   color: var(--accent); }
+  35%  { transform: scale(1.6); color: var(--accent); }
+  100% { transform: scale(1); }
+}
+
+/* Quote + photo softly fade when a heart swaps them */
+.swap { animation: swap-in 0.5s ease-out; }
+@keyframes swap-in { from { opacity: 0.15; } to { opacity: 1; } }
+
 /* Keep the cards inside the screen on phones (grid items otherwise grow to fit wide inputs). */
 body { grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: center; row-gap: 12px; }
 .card { min-width: 0; }

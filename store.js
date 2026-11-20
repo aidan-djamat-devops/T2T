@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS = {
   music_mode: "playlist",
   music_song_id: null,
   music_volume: 25,
+  hearts_per_day: 2,
 };
 
 const MAX_SONG_MB = 20;
@@ -48,19 +49,22 @@ function createSupabaseStore(cfg) {
     needsLogin: true,
 
     async load() {
-      const [quotes, photos, settings, songs] = await Promise.all([
+      const [quotes, photos, settings, songs, hearts] = await Promise.all([
         sb.from("quotes").select("*").order("created_at"),
         sb.from("photos").select("*").order("created_at"),
         sb.from("settings").select("*").eq("id", 1).maybeSingle(),
         sb.from("songs").select("*").order("created_at"),
+        sb.from("heart_state").select("*").eq("id", 1).maybeSingle(),
       ]);
       // Songs are optional: if add-music.sql hasn't been run yet, the page still works.
       if (songs.error) console.warn("No songs table yet:", songs.error.message);
+      if (hearts.error) console.warn("No hearts table yet:", hearts.error.message);
       return {
         quotes: check(quotes),
         photos: check(photos).map((p) => ({ ...p, url: publicUrl(p.path) })),
         songs: (songs.data || []).map((s) => ({ ...s, url: publicUrl(s.path, "music") })),
         settings: { ...DEFAULT_SETTINGS, ...(check(settings) || {}) },
+        hearts: hearts.data || null,
       };
     },
 
@@ -96,6 +100,11 @@ function createSupabaseStore(cfg) {
       check(await sb.storage.from("music").upload(path, file, { contentType: file.type }));
       check(await sb.from("songs").insert({ path, title }));
     },
+    // The database decides what "today" is and refuses when the hearts are used up.
+    async useHeart(quoteId, photoId) {
+      return check(await sb.rpc("use_heart", { p_quote_id: quoteId, p_photo_id: photoId }));
+    },
+
     async deleteSong(song) {
       check(await sb.from("songs").delete().eq("id", song.id));
       await sb.storage.from("music").remove([song.path]);
@@ -149,7 +158,7 @@ function createLocalStore() {
     mode: "local",
     needsLogin: false,
 
-    async load() { return { songs: [], ...read() }; },
+    async load() { return { songs: [], hearts: null, ...read() }; },
     async isLoggedIn() { return true; },
     async signIn() {},
     async signOut() {},
@@ -180,6 +189,17 @@ function createLocalStore() {
         d.photos = d.photos.filter((p) => p.id !== photo.id);
         if (d.settings.pinned_photo_id === photo.id) d.settings.pinned_photo_id = null;
       });
+    },
+
+    async useHeart(quoteId, photoId, today) {
+      let result;
+      update((d) => {
+        const h = d.hearts && d.hearts.day === today ? d.hearts : { day: today, used: 0 };
+        if (h.used >= (d.settings.hearts_per_day || 2)) throw new Error("No hearts left today");
+        d.hearts = { day: today, used: h.used + 1, quote_id: quoteId, photo_id: photoId, set_at: new Date().toISOString() };
+        result = d.hearts;
+      });
+      return result;
     },
 
     async addSong() {

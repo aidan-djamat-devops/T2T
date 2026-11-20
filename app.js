@@ -6,10 +6,10 @@ const MY_TZ = "Asia/Taipei";
 
 // Categories: label on Tally's page + short tag in the admin list.
 const KINDS = {
-  lief:      { label: "💕 Lief & persoonlijk",        tag: "Lief" },
-  motivatie: { label: "💪 Motivatie & wijsheid",      tag: "Motivatie" },
-  fact:      { label: "🧠 Fun fact & random gedachte", tag: "Fun fact" },
-  baka:      { label: "🤪 Baka & gekkigheid",          tag: "Baka" },
+  lief:      { label: "Lief & persoonlijk",        tag: "Lief" },
+  motivatie: { label: "Motivatie & wijsheid",      tag: "Motivatie" },
+  fact:      { label: "Fun fact & random gedachte", tag: "Fun fact" },
+  baka:      { label: "Baka & gekkigheid",          tag: "Baka" },
   quote:     { label: "Quote",                        tag: "Quote" },
 };
 const kindOf = (k) => KINDS[k] || KINDS.quote;
@@ -89,12 +89,20 @@ function choose(list, mode, pinnedId, salt) {
 
 function renderTally(force = false) {
   const s = data.settings;
-  const quote = choose(data.quotes, s.quote_mode, s.pinned_quote_id, 1);
-  const photo = choose(data.photos, s.photo_mode, s.pinned_photo_id, 2);
+  const quote = currentQuote();
+  const photo = currentPhoto();
 
   const key = [quote?.id, quote?.text, photo?.id, photo?.caption].join("|");
   if (!force && key === lastShownKey) return;
+  const swapped = lastShownKey !== "" && key !== lastShownKey;
   lastShownKey = key;
+  if (swapped) {
+    for (const id of ["daily", "photo"]) {
+      $(id).classList.remove("swap");
+      void $(id).offsetWidth;
+      $(id).classList.add("swap");
+    }
+  }
 
   if (quote) {
     $("daily-label").textContent = kindOf(quote.kind).label;
@@ -129,11 +137,104 @@ function renderClocks() {
 
   const r = data.settings.reunion_date;
   const daysLeft = r ? Math.ceil((new Date(r + "T00:00:00") - new Date()) / 86400000) : null;
-  const counter = $("counter");
+  const counter = $("counter-text");
+  const withHearts = heartsAvailable();
   counter.replaceChildren();
   if (daysLeft !== null && daysLeft > 0) counter.append(el("strong", { textContent: daysLeft }), daysLeft === 1 ? "day until we meet" : "days until we meet");
   else if (daysLeft === 0) counter.append(el("strong", { textContent: "Today!" }), "we meet again");
-  else counter.append(el("strong", { textContent: "♥" }), data.settings.footer_text || "thinking of you");
+  else {
+    if (!withHearts) counter.append(el("strong", { textContent: "♥" }));
+    counter.append(data.settings.footer_text || "thinking of you");
+  }
+  renderHearts();
+}
+
+// ---------- hearts: Tally can swap the quote + photo a few times a day ----------
+
+const isPinned = (list, mode, id) => mode === "pinned" && list.some((x) => sameId(x.id, id));
+const quotePinned = () => isPinned(data.quotes, data.settings.quote_mode, data.settings.pinned_quote_id);
+const photoPinned = () => isPinned(data.photos, data.settings.photo_mode, data.settings.pinned_photo_id);
+
+// What she swapped to today (if anything). A pinned item always wins;
+// in "every hour" mode a swap lasts until the next hour.
+function heartOverride(list, mode, id) {
+  const h = data.hearts;
+  if (!h || h.day !== dayNumber() || id == null || mode === "pinned") return null;
+  if (mode === "hourly" && Math.floor(Date.parse(h.set_at) / 3600000) !== Math.floor(Date.now() / 3600000)) return null;
+  return list.find((x) => sameId(x.id, id)) || null;
+}
+
+function currentQuote() {
+  const s = data.settings;
+  return heartOverride(data.quotes, s.quote_mode, data.hearts?.quote_id) || choose(data.quotes, s.quote_mode, s.pinned_quote_id, 1);
+}
+function currentPhoto() {
+  const s = data.settings;
+  return heartOverride(data.photos, s.photo_mode, data.hearts?.photo_id) || choose(data.photos, s.photo_mode, s.pinned_photo_id, 2);
+}
+
+const heartsMax = () => data.settings.hearts_per_day || 2;
+const heartsUsed = () => (data.hearts && data.hearts.day === dayNumber() ? data.hearts.used : 0);
+function heartsAvailable() {
+  const canQuote = !quotePinned() && data.quotes.length > 1;
+  const canPhoto = !photoPinned() && data.photos.length > 1;
+  return canQuote || canPhoto;
+}
+
+const randomOf = (list) => list[Math.floor(Math.random() * list.length)];
+
+// New quote from a DIFFERENT category, and a different photo.
+function pickSwap() {
+  const q = currentQuote(), p = currentPhoto();
+  let quote = null, photo = null;
+  if (!quotePinned() && data.quotes.length > 1) {
+    const otherKind = data.quotes.filter((x) => x.kind !== q?.kind);
+    const otherQuote = data.quotes.filter((x) => !sameId(x.id, q?.id));
+    quote = randomOf(otherKind.length ? otherKind : otherQuote);
+  }
+  if (!photoPinned() && data.photos.length > 1) {
+    photo = randomOf(data.photos.filter((x) => !sameId(x.id, p?.id)));
+  }
+  return { quote, photo };
+}
+
+let heartBusy = false;
+function renderHearts(popIndex = -1) {
+  const box = $("hearts");
+  box.hidden = !heartsAvailable();
+  if (box.hidden) return;
+  const max = heartsMax();
+  const left = Math.max(0, max - heartsUsed());
+  box.replaceChildren(...Array.from({ length: max }, (_, i) => {
+    const full = i < left;
+    return el("button", {
+      class: "heart-btn" + (full ? "" : " used") + (i === popIndex ? " pop" : ""),
+      textContent: "♥",
+      disabled: !full,
+      title: full ? `Surprise me (${left} left today)` : "Used — new hearts tomorrow",
+      ariaLabel: full ? `Surprise me, ${left} left today` : "Heart used",
+      onclick: (e) => { e.stopPropagation(); useHeart(); },
+    });
+  }));
+}
+
+async function useHeart() {
+  if (heartBusy) return;
+  const { quote, photo } = pickSwap();
+  if (!quote && !photo) return;
+  heartBusy = true;
+  try {
+    const before = heartsMax() - heartsUsed();
+    data.hearts = await store.useHeart(quote?.id ?? null, photo?.id ?? null, dayNumber());
+    renderHearts(before - 1); // the heart that just turned grey pops
+    renderTally();
+  } catch (err) {
+    console.error(err);
+    toast(/no hearts/i.test(err.message) ? "No hearts left today — new ones tomorrow ♥" : (err.message || "Couldn't do that"), true);
+    reload().catch(() => {});
+  } finally {
+    heartBusy = false;
+  }
 }
 
 $("daily").addEventListener("click", () => {
@@ -157,8 +258,11 @@ async function renderAdmin() {
   $("photo-mode").value = s.photo_mode;
 
   // What Tally sees right now, so it can be highlighted.
-  const showingQuote = choose(data.quotes, s.quote_mode, s.pinned_quote_id, 1);
-  const showingPhoto = choose(data.photos, s.photo_mode, s.pinned_photo_id, 2);
+  const showingQuote = currentQuote();
+  const showingPhoto = currentPhoto();
+  $("hearts-status").textContent = heartsAvailable()
+    ? `❤️ Tally used ${heartsUsed()} of ${heartsMax()} hearts today`
+    : "❤️ Hearts are hidden while both the quote and the photo are pinned";
 
   // Quotes list
   $("quote-list").replaceChildren(...[...data.quotes].reverse().map((q) => {
@@ -214,6 +318,7 @@ async function renderAdmin() {
     $("set-tz").value = s.her_timezone || "";
     $("set-reunion").value = s.reunion_date || "";
     $("set-footer").value = s.footer_text || "";
+    $("set-hearts").value = String(s.hearts_per_day || 2);
   }
 
   renderMusicAdmin();
@@ -485,6 +590,7 @@ $("settings-form").addEventListener("submit", (e) => {
     her_timezone: tz,
     reunion_date: $("set-reunion").value || null,
     footer_text: $("set-footer").value.trim() || "thinking of you",
+    hearts_per_day: Number($("set-hearts").value),
   }), "Settings saved");
 });
 
