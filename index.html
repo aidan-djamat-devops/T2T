@@ -102,6 +102,24 @@
     </form>
 
     <div id="admin-panel" hidden>
+      <!-- Heart queue -->
+      <section class="panel">
+        <div class="panel-head"><h2>Up next on her hearts</h2></div>
+        <p class="muted hint">Each heart she taps shows the top quote and the top photo from these lists. Use "Queue" on any quote or photo below. Only you can see this.</p>
+        <div class="queue-cols">
+          <div>
+            <h3>Quotes</h3>
+            <p class="muted hint" id="queue-quote-note"></p>
+            <ol class="queue" id="queue-quotes"></ol>
+          </div>
+          <div>
+            <h3>Photos</h3>
+            <p class="muted hint" id="queue-photo-note"></p>
+            <ol class="queue" id="queue-photos"></ol>
+          </div>
+        </div>
+      </section>
+
       <!-- Quotes -->
       <section class="panel">
         <div class="panel-head">
@@ -127,6 +145,7 @@
               <option value="baka">Baka &amp; gekkigheid</option>
               <option value="quote">Quote</option>
             </select>
+            <label class="check"><input type="checkbox" id="quote-next"> Show on her next heart</label>
             <button class="primary" type="submit">Add</button>
           </div>
         </form>
@@ -152,6 +171,7 @@
           <div class="row">
             <input type="file" id="photo-file" accept="image/*" required>
             <input id="photo-caption-input" placeholder="Caption (optional)">
+            <label class="check"><input type="checkbox" id="photo-next"> Show on her next heart</label>
             <button class="primary" type="submit">Upload</button>
           </div>
         </form>

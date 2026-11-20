@@ -49,12 +49,14 @@ function createSupabaseStore(cfg) {
     needsLogin: true,
 
     async load() {
-      const [quotes, photos, settings, songs, hearts] = await Promise.all([
+      const [quotes, photos, settings, songs, hearts, queue] = await Promise.all([
         sb.from("quotes").select("*").order("created_at"),
         sb.from("photos").select("*").order("created_at"),
         sb.from("settings").select("*").eq("id", 1).maybeSingle(),
         sb.from("songs").select("*").order("created_at"),
         sb.from("heart_state").select("*").eq("id", 1).maybeSingle(),
+        // Only readable when you're signed in; for Tally this is simply empty.
+        sb.from("heart_queue").select("*").order("position").order("id"),
       ]);
       // Songs are optional: if add-music.sql hasn't been run yet, the page still works.
       if (songs.error) console.warn("No songs table yet:", songs.error.message);
@@ -65,6 +67,7 @@ function createSupabaseStore(cfg) {
         songs: (songs.data || []).map((s) => ({ ...s, url: publicUrl(s.path, "music") })),
         settings: { ...DEFAULT_SETTINGS, ...(check(settings) || {}) },
         hearts: hearts.data || null,
+        queue: queue.data || [],
       };
     },
 
@@ -77,7 +80,7 @@ function createSupabaseStore(cfg) {
     },
     async signOut() { await sb.auth.signOut(); },
 
-    async addQuote(q) { check(await sb.from("quotes").insert(q)); },
+    async addQuote(q) { return check(await sb.from("quotes").insert(q).select().single()); },
     async deleteQuote(id) { check(await sb.from("quotes").delete().eq("id", id)); },
 
     async addPhoto(file, caption) {
@@ -85,7 +88,7 @@ function createSupabaseStore(cfg) {
       const ext = blob.type === "image/jpeg" ? "jpg" : (file.name.split(".").pop() || "img");
       const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       check(await sb.storage.from("photos").upload(path, blob, { contentType: blob.type }));
-      check(await sb.from("photos").insert({ path, caption }));
+      return check(await sb.from("photos").insert({ path, caption }).select().single());
     },
     async updatePhoto(id, patch) { check(await sb.from("photos").update(patch).eq("id", id)); },
     async deletePhoto(photo) {
@@ -103,6 +106,15 @@ function createSupabaseStore(cfg) {
     // The database decides what "today" is and refuses when the hearts are used up.
     async useHeart(quoteId, photoId) {
       return check(await sb.rpc("use_heart", { p_quote_id: quoteId, p_photo_id: photoId }));
+    },
+
+    // ----- heart queue -----
+    async queueAdd(kind, itemId, position) {
+      check(await sb.from("heart_queue").insert({ kind, position, [kind + "_id"]: itemId }));
+    },
+    async queueRemove(id) { check(await sb.from("heart_queue").delete().eq("id", id)); },
+    async queueSetPositions(changes) {
+      for (const c of changes) check(await sb.from("heart_queue").update({ position: c.position }).eq("id", c.id));
     },
 
     // Give Tally her hearts back for today (keeps what she swapped to on screen).
@@ -164,15 +176,20 @@ function createLocalStore() {
     mode: "local",
     needsLogin: false,
 
-    async load() { return { songs: [], hearts: null, ...read() }; },
+    async load() { return { songs: [], hearts: null, queue: [], ...read() }; },
     async isLoggedIn() { return true; },
     async signIn() {},
     async signOut() {},
 
-    async addQuote(q) { update((d) => d.quotes.push({ id: newId(), ...q })); },
+    async addQuote(q) {
+      const item = { id: newId(), ...q };
+      update((d) => d.quotes.push(item));
+      return item;
+    },
     async deleteQuote(id) {
       update((d) => {
         d.quotes = d.quotes.filter((q) => q.id !== id);
+        d.queue = (d.queue || []).filter((x) => x.quote_id !== id);
         if (d.settings.pinned_quote_id === id) d.settings.pinned_quote_id = null;
       });
     },
@@ -185,7 +202,9 @@ function createLocalStore() {
         r.onerror = rej;
         r.readAsDataURL(blob);
       });
-      update((d) => d.photos.push({ id: newId(), url, caption }));
+      const item = { id: newId(), url, caption };
+      update((d) => d.photos.push(item));
+      return item;
     },
     async updatePhoto(id, patch) {
       update((d) => Object.assign(d.photos.find((p) => p.id === id) || {}, patch));
@@ -193,6 +212,7 @@ function createLocalStore() {
     async deletePhoto(photo) {
       update((d) => {
         d.photos = d.photos.filter((p) => p.id !== photo.id);
+        d.queue = (d.queue || []).filter((x) => x.photo_id !== photo.id);
         if (d.settings.pinned_photo_id === photo.id) d.settings.pinned_photo_id = null;
       });
     },
@@ -202,7 +222,17 @@ function createLocalStore() {
       update((d) => {
         const h = d.hearts && d.hearts.day === today ? d.hearts : { day: today, used: 0 };
         if (h.used >= (d.settings.hearts_per_day || 2)) throw new Error("No hearts left today");
-        d.hearts = { day: today, used: h.used + 1, quote_id: quoteId, photo_id: photoId, set_at: new Date().toISOString() };
+        // Same rules as the database: queue first (unless pinned), otherwise her random pick.
+        const takeNext = (kind) => {
+          const s = d.settings;
+          if (s[kind + "_mode"] === "pinned" && s["pinned_" + kind + "_id"] != null) return null;
+          const next = (d.queue || []).filter((x) => x.kind === kind).sort((a, b) => a.position - b.position || a.id - b.id)[0];
+          if (!next) return null;
+          d.queue = d.queue.filter((x) => x.id !== next.id);
+          return next[kind + "_id"];
+        };
+        const q = takeNext("quote"), p = takeNext("photo");
+        d.hearts = { day: today, used: h.used + 1, quote_id: q ?? quoteId, photo_id: p ?? photoId, set_at: new Date().toISOString() };
         result = d.hearts;
       });
       return result;
@@ -210,6 +240,14 @@ function createLocalStore() {
 
     async resetHearts() {
       update((d) => { if (d.hearts) d.hearts.used = 0; });
+    },
+
+    async queueAdd(kind, itemId, position) {
+      update((d) => { (d.queue = d.queue || []).push({ id: newId(), kind, position, [kind + "_id"]: itemId }); });
+    },
+    async queueRemove(id) { update((d) => { d.queue = (d.queue || []).filter((x) => x.id !== id); }); },
+    async queueSetPositions(changes) {
+      update((d) => { for (const c of changes) { const x = (d.queue || []).find((q) => q.id === c.id); if (x) x.position = c.position; } });
     },
 
     async addSong() {

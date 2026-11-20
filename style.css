@@ -458,6 +458,28 @@ button { cursor: pointer; border: 0; background: none; }
 .hearts-admin { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
 .hearts-admin .hint { margin: 0; }
 
+/* ---------- heart queue (admin) ---------- */
+
+.queue-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.queue-cols h3 { font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+.queue-cols .hint:empty { display: none; }
+.queue { list-style: none; padding: 0; display: grid; gap: 6px; }
+.queue li {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+.queue-num { color: var(--accent); font-weight: 600; width: 1.2em; text-align: center; flex-shrink: 0; }
+.queue-thumb { width: 36px; height: 36px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+.queue-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.small.icon { padding: 2px 7px; min-width: 26px; }
+.small:disabled { opacity: 0.35; cursor: default; }
+.queued { color: var(--accent); font-size: 0.8rem; font-weight: 600; white-space: nowrap; align-self: center; }
+.check { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; padding: 0; }
+
 /* Keep the cards inside the screen on phones (grid items otherwise grow to fit wide inputs). */
 body { grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: center; row-gap: 12px; }
 .card { min-width: 0; }

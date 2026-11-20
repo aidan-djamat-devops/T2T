@@ -265,6 +265,8 @@ async function renderAdmin() {
     : "❤️ Hearts are hidden while both the quote and the photo are pinned";
   $("reset-hearts").hidden = !(heartsAvailable() && heartsUsed() > 0);
 
+  renderQueue();
+
   // Quotes list
   $("quote-list").replaceChildren(...[...data.quotes].reverse().map((q) => {
     const isPinned = sameId(q.id, s.pinned_quote_id) && s.quote_mode === "pinned";
@@ -276,6 +278,7 @@ async function renderAdmin() {
         sameId(q.id, showingQuote?.id) && s.quote_mode !== "pinned" ? el("span", { class: "now", textContent: "showing now" }) : null,
       ),
       el("div", { class: "item-actions" },
+        queueButton("quote", q.id),
         isPinned
           ? el("span", { class: "now", textContent: "✓ Showing" })
           : el("button", { class: "small", textContent: "Show this", onclick: () =>
@@ -303,6 +306,7 @@ async function renderAdmin() {
         isShowing ? el("span", { class: "badge", textContent: isPinned ? "✓ Selected" : "Showing now" }) : null,
         caption,
         el("div", { class: "item-actions" },
+          queueButton("photo", p.id),
           isPinned ? null : el("button", { class: "small", textContent: "Show this", onclick: () =>
             run(() => store.saveSettings({ pinned_photo_id: p.id, photo_mode: "pinned" }), "Tally now sees this photo") }),
           el("button", { class: "small danger", textContent: "Delete", onclick: () => {
@@ -323,6 +327,60 @@ async function renderAdmin() {
   }
 
   renderMusicAdmin();
+}
+
+// ---------- heart queue (admin) ----------
+// What her next hearts show, top first. Empty queue = random, like before.
+
+const queueOf = (kind) => (data.queue || [])
+  .filter((x) => x.kind === kind)
+  .sort((a, b) => a.position - b.position || a.id - b.id);
+
+async function queueAdd(kind, itemId, front = false) {
+  const list = queueOf(kind);
+  const position = !list.length ? 0 : front ? list[0].position - 1 : list[list.length - 1].position + 1;
+  await store.queueAdd(kind, itemId, position);
+}
+
+function queueButton(kind, itemId) {
+  const list = queueOf(kind);
+  const index = list.findIndex((x) => sameId(x[kind + "_id"], itemId));
+  if (index >= 0) return el("span", { class: "queued", textContent: "In queue #" + (index + 1) });
+  return el("button", { class: "small", textContent: "Queue", title: "Show on one of her next hearts",
+    onclick: () => run(() => queueAdd(kind, itemId), "Added to the queue") });
+}
+
+function moveInQueue(kind, index, dir) {
+  const list = queueOf(kind);
+  const a = list[index], b = list[index + dir];
+  if (!a || !b) return;
+  run(() => store.queueSetPositions([{ id: a.id, position: b.position }, { id: b.id, position: a.position }]));
+}
+
+function renderQueue() {
+  for (const kind of ["quote", "photo"]) {
+    const list = queueOf(kind);
+    const pinned = kind === "quote" ? quotePinned() : photoPinned();
+    $("queue-" + kind + "-note").textContent = pinned
+      ? "The " + kind + " is pinned, so this queue waits until you unpin it."
+      : list.length ? "" : "Empty: her hearts pick a random " + kind + ".";
+    $("queue-" + kind + "s").replaceChildren(...list.map((entry, i) => {
+      const item = kind === "quote"
+        ? data.quotes.find((q) => sameId(q.id, entry.quote_id))
+        : data.photos.find((p) => sameId(p.id, entry.photo_id));
+      if (!item) return el("li", { class: "muted", textContent: "(deleted)" });
+      return el("li", {},
+        el("span", { class: "queue-num", textContent: i + 1 }),
+        kind === "photo" ? el("img", { class: "queue-thumb", src: item.url, alt: "" }) : null,
+        el("span", { class: "queue-text", textContent: kind === "quote" ? item.text : (item.caption || "Photo") }),
+        el("div", { class: "item-actions" },
+          el("button", { class: "small icon", textContent: "↑", title: "Move up", disabled: i === 0, onclick: () => moveInQueue(kind, i, -1) }),
+          el("button", { class: "small icon", textContent: "↓", title: "Move down", disabled: i === list.length - 1, onclick: () => moveInQueue(kind, i, 1) }),
+          el("button", { class: "small danger icon", textContent: "✕", title: "Remove from queue", onclick: () => run(() => store.queueRemove(entry.id), "Removed from the queue") }),
+        ),
+      );
+    }));
+  }
 }
 
 // ---------- music ----------
@@ -574,7 +632,8 @@ $("quote-form").addEventListener("submit", (e) => {
   if (!text) return;
   const q = { text, author: $("quote-author").value.trim() || null, kind: $("quote-kind").value };
   run(async () => {
-    await store.addQuote(q);
+    const created = await store.addQuote(q);
+    if ($("quote-next").checked && created) await queueAdd("quote", created.id, true);
     $("quote-form").reset();
   }, "Added");
 });
@@ -587,7 +646,8 @@ $("photo-form").addEventListener("submit", (e) => {
   btn.disabled = true;
   btn.textContent = "Uploading…";
   run(async () => {
-    await store.addPhoto(file, $("photo-caption-input").value.trim() || null);
+    const created = await store.addPhoto(file, $("photo-caption-input").value.trim() || null);
+    if ($("photo-next").checked && created) await queueAdd("photo", created.id, true);
     $("photo-form").reset();
   }, "Photo added").finally(() => {
     btn.disabled = false;
