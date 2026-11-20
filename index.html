@@ -69,10 +69,15 @@
       <span class="np-label" id="np-label">Now playing</span>
       <span class="np-title" id="np-title"></span>
     </div>
-    <label class="np-volume">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 9a4 4 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      <input type="range" id="np-volume" min="0" max="100" step="1" aria-label="Volume">
-    </label>
+    <div class="np-controls">
+      <label class="np-volume">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 9a4 4 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input type="range" id="np-volume" min="0" max="100" step="1" aria-label="Volume">
+      </label>
+      <button class="np-skip" id="np-skip" aria-label="Skip to another song" title="Another song" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5v11l8.5-5.5L5 6.5z"/><rect x="15.5" y="6.5" width="2.2" height="11" rx="1"/></svg>
+      </button>
+    </div>
   </div>
 
   <!-- ============ Aidan's admin page ============ -->
